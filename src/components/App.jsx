@@ -1,72 +1,80 @@
-import React, { Component } from 'react';
-import PhonebookForm from './phonebookForm';
-import Contacts from './contacts';
-import FilterContacts from './filterContacts';
+import React, { useState, useEffect } from 'react';
+import { PhonebookForm } from './PhonebookForm';
+import { FilterContacts } from './FilterContacts';
+import { Contacts } from './Contacts';
+import { nanoid } from 'nanoid';
 
-export class App extends Component {
-  state = {
-    contacts: [
-      { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
-      { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
-      { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
-      { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
-    ],
-    filter: '',
-  };
+export const App = () => {
+  const [contacts, setContacts] = useState([
+    { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
+    { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
+    { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
+    { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
+  ]);
+  const [filter, setFilter] = useState('');
+  
 
-  formSubmitHandler = data => {
-    this.repeatControl(data);
-  };
-
-  repeatControl = data => {
-    let nameArray = [];
-    nameArray = this.state.contacts.map(cnt => cnt.name);
-    if (!nameArray.includes(data.name)) {
-      let arrayContacts = [];
-      arrayContacts = [
-        ...this.state.contacts,
-        { name: data.name, number: data.number },
-      ];
-      return this.setState({ ...this.state, contacts: arrayContacts });
-    } else {
-      alert('The contact is already in the phonebook');
+  useEffect(() => {
+    const phoneContacts = localStorage.getItem('contacts');
+    const parcedContacts = JSON.parse(phoneContacts);
+    if (parcedContacts) {
+      setContacts(parcedContacts);
     }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('contacts', JSON.stringify(contacts));
+  }, [contacts]);
+
+
+  const handleFilterChange = e => {
+    const newFilter = e.target.value;
+    setFilter(newFilter);
   };
 
-  elementDelete = (arr, idContact) => {
-    let newArr = arr.filter(elem => elem.id !== idContact);
-    return newArr;
-  };
-
-  deleteContactFromContactList = idContact => {
-    let newArrAfterDel = this.elementDelete(this.state.contacts, idContact);
-    this.setState({
-      ...this.state,
-      contacts: [...newArrAfterDel],
-    });
-  };
-
-  setFilterToState = filterData => {
-    this.setState({ ...this.state, filter: `${filterData}` });
-  };
-
-  filterArr = fArr => {
-    let newArr = fArr.filter(current =>
-      current.name.toUpperCase().includes(this.state.filter),
+  const filteredContacts = contacts.filter(contact =>
+    contact.name.toLowerCase().includes(filter.toLowerCase())
+  );
+  
+  const handleFormSubmit = (name, number) => {
+    const isNameExists = contacts.some(
+      contact => contact.name.toLowerCase() === name.toLowerCase()
     );
-    return newArr;
+
+    if (isNameExists) {
+      alert(`${name} is already in contacts.`);
+      return;
+    }
+
+    const newContact = {
+      id: nanoid(),
+      name,
+      number,
+    };
+
+    setContacts(prevContacts => [...prevContacts, newContact]);
   };
 
-  render() {
-    return (
-      <div className='flex'>
-        <PhonebookForm onSubmit={this.formSubmitHandler} />
-        <FilterContacts setFilterToState={this.setFilterToState} />
-        <Contacts
-          contacts={this.filterArr(this.state.contacts)}
-          del={this.deleteContactFromContactList}
-        />
-      </div>
+  
+  const handleDeleteContact = contactId => {
+    setContacts(prevContacts =>
+      prevContacts.filter(contact => contact.id !== contactId)
     );
-  }
-}
+  };
+
+  
+  return (
+    <div>
+      <h1 className="title">phonebook</h1>
+      <PhonebookForm handleFormSubmit={handleFormSubmit} />
+
+      <h2 className="title">contacts</h2>
+      <FilterContacts filter={filter} onFilterChange={handleFilterChange} />
+      <Contacts
+        contacts={filteredContacts}
+        
+        onDeleteContact={handleDeleteContact}
+      />
+    </div>
+  );
+};
